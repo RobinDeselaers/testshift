@@ -291,6 +291,12 @@
             border: none;
             font-weight: 600;
             cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-action:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         .btn-primary {
@@ -308,8 +314,10 @@
 </head>
 <body>
 
+    <!-- Main Plugin Widget -->
     <div class="shift-plugin-container">
         
+        <!-- Calendar Section -->
         <div class="calendar-header">
             <div class="month-nav">
                 <span>&lt;</span>
@@ -325,6 +333,7 @@
                 <div class="day-label">Fri</div>
                 <div class="day-label">Sat</div>
 
+                <!-- Hardcoded days for visual match -->
                 <div class="date-cell faded">26</div>
                 <div class="date-cell faded">27</div>
                 <div class="date-cell faded">28</div>
@@ -351,20 +360,26 @@
             </div>
         </div>
 
+        <!-- Controls -->
         <div class="controls-section">
-            <div style="font-size: 20px; cursor: pointer;">&#9776;</div> <div class="search-bar">
+            <div style="font-size: 20px; cursor: pointer;">&#9776;</div> <!-- Hamburger Icon -->
+            <div class="search-bar">
                 <span>&#128269; Search</span>
             </div>
-            <div>&#x2699;</div> </div>
+            <div>&#x2699;</div> <!-- Filter Icon -->
+        </div>
         <div style="padding: 10px 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
              <span style="font-size: 13px; font-weight: 500; color: #555;">📅 03.02</span>
              <button class="btn-my-shifts">My Shifts</button>
         </div>
 
+        <!-- Shift List -->
         <div class="shift-list-container" id="shiftList">
-            </div>
+            <!-- Items will be injected here via JS -->
+        </div>
     </div>
 
+    <!-- Modal Structure -->
     <div class="modal-overlay" id="shiftModal">
         <div class="modal-card">
             <div class="modal-header">
@@ -396,7 +411,7 @@
             </div>
             <div class="modal-actions">
                 <button class="btn-action btn-secondary" onclick="alert('Message feature placeholder')">Message</button>
-                <button class="btn-action btn-primary" onclick="alert('Swap request sent')">Swap Shift</button>
+                <button class="btn-action btn-primary" id="swapBtn" onclick="sendSwapNotification()">Swap Shift</button>
             </div>
         </div>
     </div>
@@ -404,58 +419,13 @@
     <script>
         /* --- JAVASCRIPT LOGIC --- */
 
-        // 1. Data Mockup (Based on your image)
+        // 1. Data Mockup
         const shiftsData = [
-            {
-                id: 1,
-                name: "Daniel",
-                role: "Sales / Team member",
-                start: "09:00",
-                end: "18:00",
-                wfh: false,
-                color: "var(--accent-bar-blue)",
-                date: "Thu, Mar 2nd 2023"
-            },
-            {
-                id: 2,
-                name: "David",
-                role: "Sales / Team member",
-                start: "09:00",
-                end: "18:00",
-                wfh: true,
-                color: "var(--accent-bar-blue)",
-                date: "Thu, Mar 2nd 2023"
-            },
-            {
-                id: 3,
-                name: "James",
-                role: "Sales / Team member",
-                start: "09:30",
-                end: "18:30",
-                wfh: true,
-                color: "var(--accent-bar-blue)",
-                date: "Thu, Mar 2nd 2023"
-            },
-            {
-                id: 4,
-                name: "Jay",
-                role: "Sales / Team manager",
-                start: "09:30",
-                end: "18:30",
-                wfh: false,
-                color: "var(--accent-bar-gold)", // Different color for Manager
-                date: "Thu, Mar 2nd 2023"
-            },
-            {
-                id: 5,
-                name: "Taylor",
-                role: "Marketing / Team member",
-                start: "10:00",
-                end: "19:00",
-                wfh: false,
-                color: "var(--accent-bar-gold)",
-                date: "Thu, Mar 2nd 2023"
-            }
+            { id: 1, name: "Daniel", role: "Sales / Team member", start: "09:00", end: "18:00", wfh: false, color: "var(--accent-bar-blue)", date: "Thu, Mar 2nd 2023" },
+            { id: 2, name: "David", role: "Sales / Team member", start: "09:00", end: "18:00", wfh: true, color: "var(--accent-bar-blue)", date: "Thu, Mar 2nd 2023" },
+            { id: 3, name: "James", role: "Sales / Team member", start: "09:30", end: "18:30", wfh: true, color: "var(--accent-bar-blue)", date: "Thu, Mar 2nd 2023" },
+            { id: 4, name: "Jay", role: "Sales / Team manager", start: "09:30", end: "18:30", wfh: false, color: "var(--accent-bar-gold)", date: "Thu, Mar 2nd 2023" },
+            { id: 5, name: "Taylor", role: "Marketing / Team member", start: "10:00", end: "19:00", wfh: false, color: "var(--accent-bar-gold)", date: "Thu, Mar 2nd 2023" }
         ];
 
         // 2. Render Function
@@ -464,7 +434,6 @@
             let currentHeader = '';
 
             shiftsData.forEach(shift => {
-                // Check if we need a date header
                 if (shift.date !== currentHeader) {
                     const headerEl = document.createElement('div');
                     headerEl.className = 'date-divider';
@@ -473,10 +442,9 @@
                     currentHeader = shift.date;
                 }
 
-                // Create Shift Item
                 const item = document.createElement('div');
                 item.className = 'shift-item';
-                item.onclick = () => openModal(shift); // Add click event
+                item.onclick = () => openModal(shift); 
 
                 const wfhBadge = shift.wfh ? `<span class="wfh-badge">WFH</span>` : '';
 
@@ -502,18 +470,13 @@
         const closeModalBtn = document.getElementById('closeModal');
 
         function openModal(shift) {
-            // Populate data
             document.getElementById('modalName').textContent = shift.name;
             document.getElementById('modalRole').textContent = shift.role;
             document.getElementById('modalStart').textContent = shift.start;
             document.getElementById('modalEnd').textContent = shift.end;
             document.getElementById('modalLocation').textContent = shift.wfh ? "Remote (Home Office)" : "Headquarters - Floor 3";
-            
-            // Toggle WFH row in modal
             const wfhRow = document.getElementById('modalWfhRow');
             wfhRow.style.display = shift.wfh ? 'block' : 'none';
-
-            // Show Modal
             modal.style.display = 'flex';
         }
 
@@ -521,13 +484,91 @@
             modal.style.display = 'none';
         }
 
-        // Event Listeners
         closeModalBtn.addEventListener('click', closeModal);
-        
-        // Close on clicking outside the card
         window.onclick = function(event) {
-            if (event.target == modal) {
-                closeModal();
+            if (event.target == modal) closeModal();
+        }
+
+        // 4. API Logic for Swap Button
+        async function sendSwapNotification() {
+            const swapBtn = document.getElementById('swapBtn');
+            const originalText = swapBtn.innerText;
+            
+            // UI Feedback
+            swapBtn.innerText = "Sending...";
+            swapBtn.disabled = true;
+
+            const url = 'https://app.staffbase.com/api/branch/notifications';
+            
+            // Raw body payload from your prompt
+            const payload = {
+              "accessorIds": [
+                "68ffafca1f92fb1e4083b108"
+              ],
+              "channels": [
+                "notificationCenter",
+                "push"
+              ],
+              "content": {
+                "en_US": {
+                  "text": "Page has no owner: My Tools"
+                },
+                "de_DE": {
+                  "text": "Page has no owner: My Tools"
+                }
+              },
+              "icon": {
+                "en_US": {
+                  "type": "font",
+                  "char": ""
+                },
+                "de_DE": {
+                  "type": "font",
+                  "char": ""
+                }
+              },
+              "image": {
+                "en_US": {
+                  "type": "image",
+                  "href": "https://avatars.githubusercontent.com/u/22979386?s=280&v=4",
+                  "width": 600,
+                  "height": 400
+                },
+                "de_DE": {
+                  "type": "image",
+                  "href": "https://avatars.githubusercontent.com/u/22979386?s=280&v=4",
+                  "width": 600,
+                  "height": 400
+                }
+              },
+              "link": "https://app.staffbase.com/content/page/6900cd1d206c76486a1ca095"
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Basic NjhmZmJiMGFjN2E5MWE2Y2VjODQwYjUxOkszKEhmeytxLFAteFs4eDFZJjFLREtOU3NlK2FhX2o5NEldbCZhX2I1UUEhMSZeVnVSKERPTjRbUFMxNi1jMjU=',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    alert("✅ Success: Notification sent to Staffbase!");
+                    closeModal();
+                } else {
+                    const errorText = await response.text();
+                    console.error("API Error:", errorText);
+                    alert("❌ Error: Failed to send notification. Status: " + response.status);
+                }
+            } catch (error) {
+                console.error("Network Error:", error);
+                alert("❌ Network Error: If you are running this locally, this is likely a CORS issue.");
+            } finally {
+                // Reset Button
+                swapBtn.innerText = originalText;
+                swapBtn.disabled = false;
             }
         }
 
