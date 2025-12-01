@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shift Overview Plugin</title>
+    <style>
+        /* --- CSS STYLES --- */
+        :root {
+            --primary-blue: #3b5998;
+            --selected-blue: #3f51b5;
+            --bg-gray: #f4f5f7;
+            --text-dark: #333333;
+            --text-light: #888888;
+            --border-color: #e0e0e0;
+            --badge-wfh-bg: #faeab1;
+            --badge-wfh-text: #8a6d3b;
+            --accent-bar-blue: #4a90e2;
+            --accent-bar-gold: #d4a017;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* Plugin Container */
+        .shift-plugin-container {
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Calendar Header Section */
+        .calendar-header {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .month-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--selected-blue);
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            gap: 5px;
+        }
+
+        .day-label {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-bottom: 5px;
+        }
+
+        .date-cell {
+            font-size: 13px;
+            padding: 8px 0;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .date-cell.selected {
+            background-color: var(--selected-blue);
+            color: white;
+        }
+
+        .date-cell.faded {
+            color: #ccc;
+        }
+
+        /* Controls Section */
+        .controls-section {
+            padding: 10px 15px;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .search-bar {
+            flex-grow: 1;
+            background: var(--bg-gray);
+            border-radius: 6px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            color: var(--text-light);
+            font-size: 14px;
+        }
+        
+        .btn-my-shifts {
+            border: 1px solid var(--text-light);
+            background: white;
+            color: var(--text-dark);
+            padding: 5px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* List Section */
+        .shift-list-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            max-height: 500px;
+        }
+
+        .date-divider {
+            background-color: var(--bg-gray);
+            padding: 8px 15px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-dark);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .shift-item {
+            display: flex;
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+        }
+
+        .shift-item:hover {
+            background-color: #f9f9f9;
+        }
+
+        .time-col {
+            display: flex;
+            flex-direction: column;
+            width: 50px;
+            margin-right: 15px;
+            justify-content: center;
+        }
+
+        .time-start {
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--text-dark);
+        }
+
+        .time-end {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 2px;
+        }
+
+        /* Vertical colored bar */
+        .status-bar {
+            width: 4px;
+            border-radius: 2px;
+            margin-right: 15px;
+        }
+
+        .info-col {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .person-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-dark);
+        }
+
+        .role-title {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 2px;
+        }
+
+        .wfh-badge {
+            background-color: var(--badge-wfh-bg);
+            color: var(--badge-wfh-text);
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            height: fit-content;
+            align-self: flex-start;
+        }
+
+        /* --- MODAL / POPUP STYLES --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-card {
+            background: white;
+            width: 90%;
+            max-width: 350px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            overflow: hidden;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            background: var(--bg-gray);
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-title {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--text-light);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-detail-row {
+            margin-bottom: 15px;
+        }
+        
+        .modal-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-light);
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .modal-value {
+            font-size: 14px;
+            color: var(--text-dark);
+            font-weight: 500;
+        }
+
+        .modal-actions {
+            padding: 15px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 10px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--selected-blue);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-dark);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="shift-plugin-container">
+        
+        <div class="calendar-header">
+            <div class="month-nav">
+                <span>&lt;</span>
+                <span>Mar 2023</span>
+                <span>&gt;</span>
+            </div>
+            <div class="calendar-grid">
+                <div class="day-label">Sun</div>
+                <div class="day-label">Mon</div>
+                <div class="day-label">Tue</div>
+                <div class="day-label">Wed</div>
+                <div class="day-label">Thu</div>
+                <div class="day-label">Fri</div>
+                <div class="day-label">Sat</div>
+
+                <div class="date-cell faded">26</div>
+                <div class="date-cell faded">27</div>
+                <div class="date-cell faded">28</div>
+                <div class="date-cell">1</div>
+                <div class="date-cell">2</div>
+                <div class="date-cell">3</div>
+                <div class="date-cell">4</div>
+                
+                <div class="date-cell">5</div>
+                <div class="date-cell">6</div>
+                <div class="date-cell">7</div>
+                <div class="date-cell">8</div>
+                <div class="date-cell">9</div>
+                <div class="date-cell">10</div>
+                <div class="date-cell">11</div>
+
+                <div class="date-cell">12</div>
+                <div class="date-cell">13</div>
+                <div class="date-cell">14</div>
+                <div class="date-cell">15</div>
+                <div class="date-cell">16</div>
+                <div class="date-cell selected">17</div>
+                <div class="date-cell selected" style="background-color: var(--primary-blue); opacity: 0.8;">18</div>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <div style="font-size: 20px; cursor: pointer;">&#9776;</div> <div class="search-bar">
+                <span>&#128269; Search</span>
+            </div>
+            <div>&#x2699;</div> </div>
+        <div style="padding: 10px 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+             <span style="font-size: 13px; font-weight: 500; color: #555;">📅 03.02</span>
+             <button class="btn-my-shifts">My Shifts</button>
+        </div>
+
+        <div class="shift-list-container" id="shiftList">
+            </div>
+    </div>
+
+    <div class="modal-overlay" id="shiftModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <span class="modal-title">Shift Details</span>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-detail-row">
+                    <div class="modal-label">Employee</div>
+                    <div class="modal-value" id="modalName">Name</div>
+                </div>
+                <div class="modal-detail-row">
+                    <div class="modal-label">Role</div>
+                    <div class="modal-value" id="modalRole">Role</div>
+                </div>
+                <div class="modal-detail-row">
+                    <div class="modal-label">Time</div>
+                    <div class="modal-value">
+                        <span id="modalStart">00:00</span> - <span id="modalEnd">00:00</span>
+                    </div>
+                </div>
+                <div class="modal-detail-row">
+                    <div class="modal-label">Location</div>
+                    <div class="modal-value" id="modalLocation">Main Office</div>
+                </div>
+                <div class="modal-detail-row" id="modalWfhRow" style="display:none;">
+                     <span class="wfh-badge">WFH</span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-action btn-secondary" onclick="alert('Message feature placeholder')">Message</button>
+                <button class="btn-action btn-primary" onclick="alert('Swap request sent')">Swap Shift</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* --- JAVASCRIPT LOGIC --- */
+
+        // 1. Data Mockup (Based on your image)
+        const shiftsData = [
+            {
+                id: 1,
+                name: "Daniel",
+                role: "Sales / Team member",
+                start: "09:00",
+                end: "18:00",
+                wfh: false,
+                color: "var(--accent-bar-blue)",
+                date: "Thu, Mar 2nd 2023"
+            },
+            {
+                id: 2,
+                name: "David",
+                role: "Sales / Team member",
+                start: "09:00",
+                end: "18:00",
+                wfh: true,
+                color: "var(--accent-bar-blue)",
+                date: "Thu, Mar 2nd 2023"
+            },
+            {
+                id: 3,
+                name: "James",
+                role: "Sales / Team member",
+                start: "09:30",
+                end: "18:30",
+                wfh: true,
+                color: "var(--accent-bar-blue)",
+                date: "Thu, Mar 2nd 2023"
+            },
+            {
+                id: 4,
+                name: "Jay",
+                role: "Sales / Team manager",
+                start: "09:30",
+                end: "18:30",
+                wfh: false,
+                color: "var(--accent-bar-gold)", // Different color for Manager
+                date: "Thu, Mar 2nd 2023"
+            },
+            {
+                id: 5,
+                name: "Taylor",
+                role: "Marketing / Team member",
+                start: "10:00",
+                end: "19:00",
+                wfh: false,
+                color: "var(--accent-bar-gold)",
+                date: "Thu, Mar 2nd 2023"
+            }
+        ];
+
+        // 2. Render Function
+        function renderShifts() {
+            const listContainer = document.getElementById('shiftList');
+            let currentHeader = '';
+
+            shiftsData.forEach(shift => {
+                // Check if we need a date header
+                if (shift.date !== currentHeader) {
+                    const headerEl = document.createElement('div');
+                    headerEl.className = 'date-divider';
+                    headerEl.innerHTML = `<span>${shift.date}</span><span>197h</span>`;
+                    listContainer.appendChild(headerEl);
+                    currentHeader = shift.date;
+                }
+
+                // Create Shift Item
+                const item = document.createElement('div');
+                item.className = 'shift-item';
+                item.onclick = () => openModal(shift); // Add click event
+
+                const wfhBadge = shift.wfh ? `<span class="wfh-badge">WFH</span>` : '';
+
+                item.innerHTML = `
+                    <div class="time-col">
+                        <span class="time-start">${shift.start}</span>
+                        <span class="time-end">${shift.end}</span>
+                    </div>
+                    <div class="status-bar" style="background-color: ${shift.color}"></div>
+                    <div class="info-col">
+                        <span class="person-name">${shift.name}</span>
+                        <span class="role-title">${shift.role}</span>
+                    </div>
+                    ${wfhBadge}
+                `;
+
+                listContainer.appendChild(item);
+            });
+        }
+
+        // 3. Modal Functions
+        const modal = document.getElementById('shiftModal');
+        const closeModalBtn = document.getElementById('closeModal');
+
+        function openModal(shift) {
+            // Populate data
+            document.getElementById('modalName').textContent = shift.name;
+            document.getElementById('modalRole').textContent = shift.role;
+            document.getElementById('modalStart').textContent = shift.start;
+            document.getElementById('modalEnd').textContent = shift.end;
+            document.getElementById('modalLocation').textContent = shift.wfh ? "Remote (Home Office)" : "Headquarters - Floor 3";
+            
+            // Toggle WFH row in modal
+            const wfhRow = document.getElementById('modalWfhRow');
+            wfhRow.style.display = shift.wfh ? 'block' : 'none';
+
+            // Show Modal
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        // Event Listeners
+        closeModalBtn.addEventListener('click', closeModal);
+        
+        // Close on clicking outside the card
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+
+        // Initialize
+        renderShifts();
+
+    </script>
+</body>
+</html>
